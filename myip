@@ -1,0 +1,28 @@
+#! /bin/bash
+
+#
+##
+#
+
+plat="$(uname)"
+
+if [ "$plat" = 'Darwin' ]; then
+   ifconfig | while read pp; do
+      [ "$(echo "$pp" | cut -d: -f1)" = 'en1' ] && 
+      localip='true' && continue
+
+      [ "$localip" = 'true' ] && [ "$(echo "$pp" | cut -d' ' -f1)" = 'inet' ] &&
+      echo "ssh $USER@$(echo "$pp" | cut -d' ' -f2  && localip='false')" && exit 0
+   done 
+elif [ "$plat" = 'Linux' ]; then
+   ifconfig | while read pp; do
+      [ "$(echo "$pp" | sed 's;  *; ;' | cut -d' ' -f1)" = 'eth0' ] &&
+      localip='true' && continue
+      
+      [ "$localip" = 'true' ] && [ "$(echo "$pp" | cut -d' ' -f1)" = 'inet' ] &&
+      echo "ssh $USER@$(echo "$pp" | cut -d' ' -f2 | cut -d: -f2 && localip='false')" &&
+      exit 0
+   done
+fi
+
+

@@ -1,0 +1,50 @@
+#! /bin/sh
+
+
+function timeIni(){
+   if [ "$(uname)" = 'Darwin' ]; then 
+      timeIni="$(stat -x "$1" | grep 'Change' | cut -d: -f2- | 
+         sed -e 's; ;;g' -e 's;:;;g' )"
+      echo "$timeIni"
+   elif [ "$(uname)" = 'Linux' ]; then
+      timeIni="$(stat "$1" | grep 'Change' | cut -d: -f2- |
+         sed -e 's; ;;g' -e 's;:;;g' )"
+      echo "$timeIni"
+   fi
+}
+
+prog="$(basename "$0")"
+tmp="/tmp/$prog/$$/"
+mkdir -p "$tmp"
+
+function main() {
+   while :; do 
+      git 'ls-files' > "$tmp/db"
+      while read pp; do
+         if ! [ -f  "$tmp/$pp.$(timeIni "$pp")" ]; then
+            f="$tmp/$pp.$(timeIni "$pp")"
+            mkdir -p "$(dirname "$f")" && touch "$f"
+            sync='true'
+         fi
+      done < "$tmp/db"
+   
+      if [ "$sync" = 'true' ]; then
+         echo "$((git commit -a -m "$(uname -s -r -n) at $(date +%Y.%m.%d\ %H:%M:%S\ %z)" 
+         git push origin master) 2>/dev/null) \c"
+      fi
+      rm -rf $tmp/*
+      sync='false'
+      git 'ls-files' | while read pp; do
+         f="$tmp/$pp.$(timeIni "$pp")"
+         mkdir -p "$(dirname "$f")" && touch "$f"
+      done
+      sleep 300
+   done
+}
+
+#git commit -a -m "$(uname -s -r -n) at $(date +%Y.%m.%d\ %H:%M:%S\ %z)" 2>/dev/null
+#main &> "$HOME/.log/$pp.$(date +%Y.%m.%d\ %H:%M:%S\ %z)" &
+sync='true'
+main
+
+

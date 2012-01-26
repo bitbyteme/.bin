@@ -1,0 +1,67 @@
+#! /bin/sh
+
+# adding apt-get restricted repositories by editing /etc/apt/sources.list file
+if ! [ -f '/etc/apt/sources.list.bak' ]; then  
+   sudo chmod 777 /etc/apt
+   sudo mv /etc/apt/sources.list /etc/apt/sources.list.bak
+   sudo cat /etc/apt/sources.list.bak | sed -e 's;^# deb http; deb http;' -e 's;^# deb-src ; deb-src ;' > /etc/apt/sources.list
+   sudo chmod 755 /etc/apt
+   sudo apt-get -y update
+   sudo apt-get -y upgrade
+   pkgsBasic='build-essential curl wget git-core openssl libssl-dev openssh-server openssh-client'
+   pkgsExtra='vim-nox zsh ' 
+   sudo apt-get -y install $pkgsBasic $pkgsExtra 
+   sudo apt-get -y  autoremove
+fi
+
+# cloning or pulling $gitRepo into gitDir
+cd ~
+gitRepo='git://github.com/tomatoNuts/dotfiles.git'
+gitDir=".$(echo "${gitRepo##*/}" | sed 's;.git;;')"
+git clone "$gitRepo" "$gitDir" 2>/dev/null || { cd "$gitDir"; git pull  ;}
+
+# cloning or pulling $gitRepo into gitDir
+cd ~
+gitRepo='git://github.com/tomatoNuts/work.git'
+gitDir=".$(echo "${gitRepo##*/}" | sed 's;.git;;')"
+git clone "$gitRepo" "$gitDir" 2>/dev/null || { cd "$gitDir"; git pull  ;}
+
+
+# symlinks
+[ -f "$HOME/.bashrc.bak" ] || mv ~/.bashrc ~/.bashrc.bak
+(ln -s ~/.dotfiles/aliasrc ~/.aliasrc 
+ln -s ~/.dotfiles/bashrc ~/.bashrc
+ln -s ~/.dotfiles/bin ~/.bin
+ln -s ~/.dotfiles/vim ~/.vim
+ln -s ~/.dotfiles/noderc.js ~/.noderc
+ln -s ~/.dotfiles/vimrc ~/.vimrc
+ln -s ~/.dotfiles/zshrc ~/.zshrc ) 2>/dev/null
+
+#
+## nodejs, npm and modules
+## also, .work and source files. if only if $source doesn't exists.
+#
+sources="$HOME/.work/sources/"
+nodeDist='node-v0.4.9'
+nodeURL="http://nodejs.org/dist/$nodeDist.tar.gz"
+nodePkg="express jsdom socket.io" 
+
+if ! [ -e "$sources" ]; then
+   mkdir -p "$sources" 
+   cd "$sources" 
+   curl "$nodeURL" | tar zxfv -
+   cd "$nodeDist"
+   ./configure
+   make 
+   sudo make install
+
+   cd "$sources"
+   sudo curl http://npmjs.org/install.sh | sudo sh
+   echo 'installing node modules ...'
+   npm install $nodePkg
+fi
+
+[ "$?" -eq 0 ] && sudo reboot
+
+
+
